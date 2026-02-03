@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💩 POOP! The Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-blue-300 to-blue-500 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-2xl p-4 w-full max-w-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl md:text-3xl font-bold text-purple-600">💩 POOP! The Game</h1>
+            <div class="text-xl md:text-2xl font-bold text-yellow-600">Score: <span id="scoreDisplay">0</span></div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="500" class="border-4 border-purple-400 rounded-lg bg-sky-200 w-full touch-none"></canvas>
+        
+        <div class="mt-4 text-center space-y-2">
+            <p class="text-gray-700 font-semibold text-lg">Tap or Click to Jump!</p>
+            <p class="text-gray-600">
+                Avoid the plumbers 🔧 • Jump over gaps • Double jump! • Collect corn! 🌽
+            </p>
+            <div id="highScoreSection" class="space-y-2">
+                <p class="text-purple-600 font-semibold">High Score: <span id="highScoreDisplay">0</span></p>
+                <button id="shareButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full transition-colors hidden">
+                    Share High Score 🎉
+                </button>
+            </div>
+            
+            <div class="pt-4">
+                <button id="level2Button" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-6 rounded-full transition-colors">
+                    🎮 Be First to Play Level 2!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        const shareButton = document.getElementById('shareButton');
+        const level2Button = document.getElementById('level2Button');
+
+        let score = 0;
+        let highScore = 0;
+
+        const game = {
+            player: { x: 150, y: 300, vx: 0, vy: 0, width: 40, height: 40, onGround: false, jumpsLeft: 2 },
+            camera: { x: 0 },
+            score: 0,
+            platforms: [
+                { x: 0, y: 450, width: 800, height: 20 },
+                { x: 950, y: 450, width: 600, height: 20 },
+                { x: 1700, y: 450, width: 700, height: 20 },
+                { x: 2550, y: 450, width: 600, height: 20 },
+                { x: 3300, y: 450, width: 800, height: 20 },
+                { x: 4250, y: 450, width: 700, height: 20 },
+                { x: 5100, y: 450, width: 900, height: 20 },
+                { x: 350, y: 350, width: 150, height: 20 },
+                { x: 600, y: 300, width: 200, height: 20 },
+                { x: 1100, y: 350, width: 180, height: 20 },
+                { x: 1400, y: 300, width: 150, height: 20 },
+                { x: 1900, y: 350, width: 200, height: 20 },
+                { x: 2200, y: 300, width: 150, height: 20 },
+                { x: 2700, y: 350, width: 180, height: 20 },
+                { x: 3000, y: 300, width: 200, height: 20 },
+                { x: 3500, y: 350, width: 150, height: 20 },
+                { x: 3800, y: 300, width: 180, height: 20 },
+                { x: 4400, y: 350, width: 200, height: 20 },
+                { x: 4700, y: 300, width: 150, height: 20 },
+                { x: 5300, y: 350, width: 180, height: 20 }
+            ],
+            coins: [
+                { x: 400, y: 300, collected: false },
+                { x: 650, y: 250, collected: false },
+                { x: 900, y: 200, collected: false },
+                { x: 1150, y: 250, collected: false },
+                { x: 1380, y: 300, collected: false },
+                { x: 1580, y: 250, collected: false },
+                { x: 1800, y: 230, collected: false },
+                { x: 2050, y: 270, collected: false },
+                { x: 2300, y: 300, collected: false },
+                { x: 2530, y: 250, collected: false },
+                { x: 2730, y: 200, collected: false },
+                { x: 3030, y: 250, collected: false },
+                { x: 3230, y: 300, collected: false },
+                { x: 3480, y: 250, collected: false },
+                { x: 3730, y: 230, collected: false },
+                { x: 3960, y: 280, collected: false },
+                { x: 4160, y: 330, collected: false },
+                { x: 4460, y: 300, collected: false },
+                { x: 4660, y: 250, collected: false },
+                { x: 4910, y: 300, collected: false },
+                { x: 5160, y: 270, collected: false },
+                { x: 5390, y: 230, collected: false },
+                { x: 5640, y: 280, collected: false }
+            ],
+            pipes: [
+                { x: 0, y: 390, height: 60 },
+                { x: 500, y: 390, height: 60 },
+                { x: 1200, y: 370, height: 80 },
+                { x: 2100, y: 390, height: 60 },
+                { x: 3000, y: 380, height: 70 },
+                { x: 3900, y: 390, height: 60 },
+                { x: 4800, y: 370, height: 80 }
+            ],
+            plumbers: [
+                { x: 900, y: 410, vx: -1.5, vy: 0, onGround: false },
+                { x: 1800, y: 410, vx: -1.6, vy: 0, onGround: false },
+                { x: 2700, y: 410, vx: -1.5, vy: 0, onGround: false },
+                { x: 3700, y: 410, vx: -1.7, vy: 0, onGround: false },
+                { x: 4600, y: 410, vx: -1.6, vy: 0, onGround: false },
+                { x: 5500, y: 410, vx: -1.5, vy: 0, onGround: false }
+            ],
+            clouds: [
+                { x: 200, y: 100 }, { x: 500, y: 150 }, { x: 900, y: 80 },
+                { x: 1300, y: 120 }, { x: 1700, y: 90 }, { x: 2100, y: 140 },
+                { x: 2500, y: 110 }, { x: 2900, y: 130 }, { x: 3300, y: 95 },
+                { x: 3700, y: 125 }, { x: 4100, y: 105 }, { x: 4500, y: 145 },
+                { x: 4900, y: 115 }, { x: 5300, y: 135 }, { x: 5700, y: 100 }
+            ],
+            finishPipe: { x: 6000, y: 150, width: 400, height: 200, reached: false },
+            gravity: 0.5,
+            jumpPower: -13,
+            autoScrollSpeed: 2,
+            gameOver: false
+        };
+
+        function resetGame() {
+            game.player = { x: 150, y: 300, vx: 0, vy: 0, width: 40, height: 40, onGround: false, jumpsLeft: 2 };
+            game.camera = { x: 0 };
+            game.score = 0;
+            game.coins.forEach(coin => coin.collected = false);
+            game.pipes = [
+                { x: 0, y: 390, height: 60 },
+                { x: 500, y: 390, height: 60 },
+                { x: 1200, y: 370, height: 80 },
+                { x: 2100, y: 390, height: 60 },
+                { x: 3000, y: 380, height: 70 },
+                { x: 3900, y: 390, height: 60 },
+                { x: 4800, y: 370, height: 80 }
+            ];
+            game.plumbers = [
+                { x: 900, y: 410, vx: -1.5, vy: 0, onGround: false },
+                { x: 1800, y: 410, vx: -1.6, vy: 0, onGround: false },
+                { x: 2700, y: 410, vx: -1.5, vy: 0, onGround: false },
+                { x: 3700, y: 410, vx: -1.7, vy: 0, onGround: false },
+                { x: 4600, y: 410, vx: -1.6, vy: 0, onGround: false },
+                { x: 5500, y: 410, vx: -1.5, vy: 0, onGround: false }
+            ];
+            game.gameOver = false;
+            game.finishPipe.reached = false;
+            score = 0;
+            scoreDisplay.textContent = '0';
+        }
+
+        function handleJump() {
+            if (game.gameOver || game.finishPipe.reached) {
+                resetGame();
+                return;
+            }
+            const p = game.player;
+            if (p.jumpsLeft > 0) {
+                p.vy = game.jumpPower;
+                p.jumpsLeft--;
+                p.onGround = false;
+            }
+        }
+
+        canvas.addEventListener('click', handleJump);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleJump();
+        });
+
+        function drawPlumber(ctx, x, y) {
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(x - 15, y - 35, 30, 10);
+            ctx.fillStyle = '#FFDBAC';
+            ctx.fillRect(x - 12, y - 25, 24, 20);
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(x - 10, y - 12, 20, 6);
+            ctx.fillStyle = '#0000FF';
+            ctx.fillRect(x - 10, y - 6, 20, 16);
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(x - 6, y - 2, 4, 4);
+            ctx.fillRect(x + 2, y - 2, 4, 4);
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(x - 10, y + 10, 8, 6);
+            ctx.fillRect(x + 2, y + 10, 8, 6);
+        }
+
+        function drawPipe(ctx, x, y, height) {
+            ctx.fillStyle = '#2D8B3D';
+            ctx.fillRect(x, y, 50, height);
+            ctx.fillStyle = '#3BA54A';
+            ctx.fillRect(x - 5, y - 10, 60, 10);
+            ctx.fillStyle = '#4FC45F';
+            ctx.fillRect(x + 5, y, 5, height);
+            ctx.fillStyle = '#1F5F2A';
+            ctx.fillRect(x + 45, y, 5, height);
+        }
+
+        function drawHorizontalPipe(ctx, x, y, width, height) {
+            ctx.fillStyle = '#2D8B3D';
+            ctx.fillRect(x, y, width, height);
+            ctx.fillStyle = '#1F5F2A';
+            ctx.fillRect(x, y, 20, height);
+            ctx.fillStyle = '#000000';
+            ctx.globalAlpha = 0.3;
+            ctx.fillRect(x, y + 10, 40, height - 20);
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = '#3BA54A';
+            ctx.fillRect(x, y - 10, width, 10);
+            ctx.fillRect(x, y + height, width, 10);
+            ctx.fillStyle = '#4FC45F';
+            ctx.fillRect(x + 20, y + 5, width - 20, 10);
+            ctx.fillStyle = '#1F5F2A';
+            ctx.fillRect(x + 20, y + height - 15, width - 20, 10);
+        }
+
+        function drawCloud(ctx, x, y) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.arc(x + 20, y, 25, 0, Math.PI * 2);
+            ctx.arc(x + 40, y, 20, 0, Math.PI * 2);
+            ctx.arc(x + 20, y - 15, 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawCorn(ctx, x, y) {
+            ctx.font = '24px Arial';
+            ctx.fillText('🌽', x - 12, y + 12);
+        }
+
+        function gameLoop() {
+            const p = game.player;
+
+            if (!game.gameOver && !game.finishPipe.reached) {
+                const scrollAmount = game.autoScrollSpeed;
+                game.camera.x += scrollAmount;
+                p.x += scrollAmount;
+
+                if (game.camera.x < 0) {
+                    game.camera.x = 0;
+                    p.x = 50;
+                }
+
+                p.vy += game.gravity;
+                p.y += p.vy;
+
+                if (p.y > 550 || p.x < game.camera.x - p.width || p.x > game.camera.x + 800) {
+                    game.gameOver = true;
+                    if (game.score > highScore) {
+                        highScore = game.score;
+                        highScoreDisplay.textContent = highScore;
+                        shareButton.classList.remove('hidden');
+                    }
+                }
+
+                let onPlatform = false;
+
+                game.platforms.forEach(platform => {
+                    if (p.x + p.width > platform.x && p.x < platform.x + platform.width) {
+                        if (p.y + p.height > platform.y && p.y + p.height < platform.y + 20 && p.vy >= 0) {
+                            p.y = platform.y - p.height;
+                            p.vy = 0;
+                            p.onGround = true;
+                            p.jumpsLeft = 2;
+                            onPlatform = true;
+                        }
+                    }
+                });
+
+                if (!onPlatform) p.onGround = false;
+
+                if (p.x + p.width > game.finishPipe.x && p.x < game.finishPipe.x + game.finishPipe.width) {
+                    if (p.y + p.height > game.finishPipe.y && p.y < game.finishPipe.y + game.finishPipe.height) {
+                        game.finishPipe.reached = true;
+                        if (game.score > highScore) {
+                            highScore = game.score;
+                            highScoreDisplay.textContent = highScore;
+                            shareButton.classList.remove('hidden');
+                        }
+                    }
+                }
+
+                game.pipes.forEach(pipe => {
+                    if (p.x + p.width > pipe.x && p.x < pipe.x + 50) {
+                        if (p.y + p.height > pipe.y && p.y < pipe.y + pipe.height) {
+                            p.x = pipe.x - p.width;
+                            const pushBack = -5;
+                            game.camera.x += pushBack;
+                            p.x += pushBack;
+                            if (game.camera.x < 0) {
+                                game.camera.x = 0;
+                                p.x = pipe.x - p.width;
+                            }
+                            if (p.vy > 0) p.vy *= 0.5;
+                        }
+                        if (p.y + p.height > pipe.y - 10 && p.y + p.height < pipe.y && p.vy >= 0) {
+                            p.y = pipe.y - 10 - p.height;
+                            p.vy = 0;
+                            p.onGround = true;
+                            p.jumpsLeft = 2;
+                            onPlatform = true;
+                        }
+                    }
+                });
+
+                game.coins.forEach(coin => {
+                    if (!coin.collected) {
+                        const dx = p.x + p.width / 2 - coin.x;
+                        const dy = p.y + p.height / 2 - coin.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 30) {
+                            coin.collected = true;
+                            game.score += 10;
+                            score = game.score;
+                            scoreDisplay.textContent = score;
+                        }
+                    }
+                });
+
+                game.plumbers.forEach(plumber => {
+                    const distanceFromCamera = plumber.x - game.camera.x;
+                    const isActive = distanceFromCamera > -200 && distanceFromCamera < 1000;
+
+                    if (!isActive && plumber.x > game.camera.x + 1000) return;
+
+                    plumber.vy += game.gravity;
+                    plumber.y += plumber.vy;
+                    plumber.x += plumber.vx;
+
+                    let plumberOnPlatform = false;
+
+                    game.platforms.forEach(platform => {
+                        if (plumber.x + 15 > platform.x && plumber.x - 15 < platform.x + platform.width) {
+                            if (plumber.y + 16 > platform.y && plumber.y + 16 < platform.y + 20 && plumber.vy >= 0) {
+                                plumber.y = platform.y - 16;
+                                plumber.vy = 0;
+                                plumber.onGround = true;
+                                plumberOnPlatform = true;
+                            }
+                        }
+                    });
+
+                    if (!plumberOnPlatform) plumber.onGround = false;
+
+                    if (plumber.x < game.camera.x - 200 || plumber.y > 550) {
+                        const furthestPlumber = Math.max(...game.plumbers.map(pl => pl.x));
+                        plumber.x = Math.max(furthestPlumber + 900, game.camera.x + 1200);
+                        plumber.y = 410;
+                        plumber.vy = 0;
+                    }
+
+                    if (isActive) {
+                        const dx = Math.abs((p.x + p.width / 2) - plumber.x);
+                        const dy = Math.abs((p.y + p.height / 2) - (plumber.y + 8));
+                        if (dx < 35 && dy < 35) {
+                            game.gameOver = true;
+                            if (game.score > highScore) {
+                                highScore = game.score;
+                                highScoreDisplay.textContent = highScore;
+                                shareButton.classList.remove('hidden');
+                            }
+                        }
+                    }
+                });
+            }
+
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            game.clouds.forEach(cloud => {
+                drawCloud(ctx, cloud.x - game.camera.x * 0.5, cloud.y);
+            });
+
+            ctx.fillStyle = '#654321';
+            game.platforms.forEach(platform => {
+                ctx.fillRect(platform.x - game.camera.x, platform.y, platform.width, platform.height);
+            });
+
+            game.pipes.forEach(pipe => {
+                drawPipe(ctx, pipe.x - game.camera.x, pipe.y, pipe.height);
+            });
+
+            drawHorizontalPipe(ctx, game.finishPipe.x - game.camera.x, game.finishPipe.y, game.finishPipe.width, game.finishPipe.height);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 32px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('FINISH', game.finishPipe.x - game.camera.x + 200, game.finishPipe.y + 120);
+            ctx.textAlign = 'left';
+
+            game.coins.forEach(coin => {
+                if (!coin.collected) {
+                    drawCorn(ctx, coin.x - game.camera.x, coin.y);
+                }
+            });
+
+            game.plumbers.forEach(plumber => {
+                const distanceFromCamera = plumber.x - game.camera.x;
+                if (distanceFromCamera > -200 && distanceFromCamera < 1000) {
+                    drawPlumber(ctx, plumber.x - game.camera.x, plumber.y);
+                }
+            });
+
+            ctx.font = `${p.height}px Arial`;
+            ctx.fillText('💩', p.x - game.camera.x, p.y + p.height);
+
+            if (game.gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('FLUSHED!', canvas.width / 2, canvas.height / 2 - 40);
+                ctx.font = '24px Arial';
+                ctx.fillText(`Score: ${game.score}`, canvas.width / 2, canvas.height / 2 + 10);
+                ctx.fillText(`High Score: ${highScore}`, canvas.width / 2, canvas.height / 2 + 45);
+                ctx.fillText('Tap to Restart', canvas.width / 2, canvas.height / 2 + 90);
+                ctx.textAlign = 'left';
+            }
+
+            if (game.finishPipe.reached) {
+                ctx.fillStyle = 'rgba(0, 150, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Congratulations!', canvas.width / 2, canvas.height / 2 - 40);
+                ctx.font = '32px Arial';
+                ctx.fillText('Level 1 Complete!', canvas.width / 2, canvas.height / 2 + 10);
+                ctx.font = '24px Arial';
+                ctx.fillText(`Score: ${game.score}`, canvas.width / 2, canvas.height / 2 + 50);
+                ctx.fillText('Tap to Play Again', canvas.width / 2, canvas.height / 2 + 90);
+                ctx.textAlign = 'left';
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        shareButton.addEventListener('click', () => {
+            const text = `I scored ${highScore} points playing Poop! The Game, check it out!`;
+            const url = window.location.href;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'POOP! The Game',
+                    text: text,
+                    url: url
+                }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(`${text} ${url}`).then(() => {
+                    alert('Link copied to clipboard!');
+                }).catch(() => {
+                    alert(`${text} ${url}`);
+                });
+            }
+        });
+
+        level2Button.addEventListener('click', () => {
+            const email = 'axton13@gmail.com';
+            const subject = 'When is level 2?!';
+            const body = "Let me know! I can't wait! Thanks!";
+            window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html>
