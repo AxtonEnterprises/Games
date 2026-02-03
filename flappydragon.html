@@ -9,6 +9,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         
         body {
@@ -39,6 +40,7 @@
             border: 3px solid #333;
             overflow: hidden;
             cursor: pointer;
+            touch-action: manipulation;
         }
         
         .torch {
@@ -152,6 +154,7 @@
             cursor: pointer;
             box-shadow: 0 0.4vmin 0.6vmin rgba(0,0,0,0.5);
             transition: all 0.2s;
+            -webkit-tap-highlight-color: rgba(255, 215, 0, 0.3);
         }
         
         .button:hover {
@@ -373,6 +376,7 @@
         }
         
         gameContainer.addEventListener('click', flap);
+        
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 e.preventDefault();
